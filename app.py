@@ -48,3 +48,4 @@ def index():
                 })
 
     return render_template("index.html", channels=channels)
+app.run(host="0.0.0.0", port=10000)
