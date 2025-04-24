@@ -33,19 +33,18 @@ def index():
         if ch_data["items"]:
             ch = ch_data["items"][0]
             published_at = parser.parse(ch["snippet"]["publishedAt"])
-            stats = ch["statistics"]
-            subs = int(stats.get("subscriberCount", 0))
-            views = int(stats.get("viewCount", 0))
-
-           if (datetime.datetime.utcnow() - published_at.replace(tzinfo=None)).days <= 180 and subs >= 1000 and views >= 10000:
-                channels.append({
-                    "title": channel_title,
-                    "url": f"https://www.youtube.com/channel/{channel_id}",
-                    "subscribers": f"{subs:,}",
-                    "views": f"{views:,}",
-                    "category": "教育",
-                    "created": published_at.strftime("%Y/%m/%d")
-                })
+                  stats = ch["statistics"]
+        subs = int(stats.get("subscriberCount", 0))
+        views = int(stats.get("viewCount", 0))
+        if (datetime.datetime.utcnow() - published_at.replace(tzinfo=None)).days <= 180 and subs >= 1000 and views >= 10000:
+            channels.append({
+                "title": channel_title,
+                "url": f"https://www.youtube.com/channel/{channel_id}",
+                "subscribers": f"{subs:,}",
+                "views": f"{views:,}",
+                "category": "教育",
+                "created": published_at.strftime("%Y/%m/%d")
+            })
 
     return render_template("index.html", channels=channels)
 app.run(host="0.0.0.0", port=10000)
