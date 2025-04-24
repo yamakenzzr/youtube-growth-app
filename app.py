@@ -37,7 +37,7 @@ def index():
             subs = int(stats.get("subscriberCount", 0))
             views = int(stats.get("viewCount", 0))
 
-            if (datetime.datetime.utcnow() - published_at).days <= 180 and subs >= 1000 and views >= 10000:
+           if (datetime.datetime.utcnow() - published_at.replace(tzinfo=None)).days <= 180 and subs >= 1000 and views >= 10000:
                 channels.append({
                     "title": channel_title,
                     "url": f"https://www.youtube.com/channel/{channel_id}",
