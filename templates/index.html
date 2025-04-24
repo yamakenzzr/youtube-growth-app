@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>YouTube急成長チャンネル</title>
+    <style>
+        table { width: 100%; border-collapse: collapse; }
+        th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+        th { background-color: #f5f5f5; }
+    </style>
+</head>
+<body>
+    <h2>新規 & 急成長チャンネル（教育系）</h2>
+    <table>
+        <tr>
+            <th>チャンネル名</th>
+            <th>登録者数</th>
+            <th>再生数</th>
+            <th>カテゴリ</th>
+            <th>登録日</th>
+        </tr>
+        {% for ch in channels %}
+        <tr>
+            <td><a href="{{ ch.url }}" target="_blank">{{ ch.title }}</a></td>
+            <td>{{ ch.subscribers }}</td>
+            <td>{{ ch.views }}</td>
+            <td>{{ ch.category }}</td>
+            <td>{{ ch.created }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+</body>
+</html>
