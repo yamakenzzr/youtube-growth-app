@@ -1,20 +1,25 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <meta charset="utf-8">
+    <meta charset="UTF-8">
     <title>YouTube急成長チャンネル検索</title>
 </head>
 <body>
     <h1>YouTube急成長チャンネル検索</h1>
     <form method="get">
-        <input type="text" name="keyword" placeholder="検索キーワードを入力" />
-        <label>
-            <input type="checkbox" name="filter" checked> 急成長チャンネルのみ表示
-        </label>
-        <input type="submit" value="検索" />
+        <input type="text" name="keyword" value="{{ keyword }}" placeholder="キーワードを入力">
+        <label><input type="checkbox" name="growth" {% if filter_growth %}checked{% endif %}> 急成長チャンネルのみ表示</label>
+        <button type="submit">検索</button>
     </form>
+    <br>
     <table border="1">
-        <tr><th>チャンネル名</th><th>登録者数</th><th>総再生数</th><th>カテゴリ</th><th>作成日</th></tr>
+        <tr>
+            <th>チャンネル名</th>
+            <th>登録者数</th>
+            <th>総再生数</th>
+            <th>カテゴリ</th>
+            <th>作成日</th>
+        </tr>
         {% for ch in channels %}
         <tr>
             <td><a href="{{ ch.url }}" target="_blank">{{ ch.title }}</a></td>
