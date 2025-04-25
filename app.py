@@ -1,23 +1,23 @@
-
 from flask import Flask, render_template, request
 from googleapiclient.discovery import build
-import datetime
 from dateutil import parser
-import os
+import datetime
 
 app = Flask(__name__)
 
-API_KEY = os.getenv("YOUTUBE_API_KEY", "YOUR_API_KEY_HERE")
+API_KEY = "AIzaSyC_9AmdCyM2Q3JyX8KqAes6SV-Gcv9zXyQ"
 
-@app.route("/", methods=["GET"])
+@app.route("/")
 def index():
-    query = request.args.get("q", "")
+    keyword = request.args.get("keyword", "教育")
+    use_filter = request.args.get("filter") == "on"
+
     youtube = build("youtube", "v3", developerKey=API_KEY)
 
     published_after = (datetime.datetime.utcnow() - datetime.timedelta(days=180)).replace(microsecond=0).isoformat() + "Z"
-    
+
     search_response = youtube.search().list(
-        q=query,
+        q=keyword,
         part="snippet",
         type="video",
         maxResults=30,
@@ -25,9 +25,15 @@ def index():
     ).execute()
 
     channels = []
-    for item in search_response.get("items", []):
+    seen_channel_ids = set()
+
+    for item in search_response["items"]:
         channel_id = item["snippet"]["channelId"]
         channel_title = item["snippet"]["channelTitle"]
+
+        if channel_id in seen_channel_ids:
+            continue
+        seen_channel_ids.add(channel_id)
 
         ch_data = youtube.channels().list(
             part="snippet,statistics",
@@ -41,7 +47,25 @@ def index():
             subs = int(stats.get("subscriberCount", 0))
             views = int(stats.get("viewCount", 0))
 
-            if (datetime.datetime.utcnow() - published_at.replace(tzinfo=None)).days <= 180 and subs >= 1000 and views >= 10000:
+            published_within_days = 180
+            min_subscribers = 1000
+            min_views = 10000
+
+            if use_filter:
+                if (
+                    (datetime.datetime.utcnow() - published_at.replace(tzinfo=None)).days <= published_within_days
+                    and subs >= min_subscribers
+                    and views >= min_views
+                ):
+                    channels.append({
+                        "title": channel_title,
+                        "url": f"https://www.youtube.com/channel/{channel_id}",
+                        "subscribers": f"{subs:,}",
+                        "views": f"{views:,}",
+                        "category": "推測中",
+                        "created": published_at.strftime("%Y/%m/%d")
+                    })
+            else:
                 channels.append({
                     "title": channel_title,
                     "url": f"https://www.youtube.com/channel/{channel_id}",
@@ -51,7 +75,7 @@ def index():
                     "created": published_at.strftime("%Y/%m/%d")
                 })
 
-    return render_template("index.html", channels=channels)
+    return render_template("index.html", channels=channels, keyword=keyword, use_filter=use_filter)
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=10000)
