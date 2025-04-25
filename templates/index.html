@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html>
 <head>
@@ -7,11 +8,10 @@
 <body>
     <h1>YouTube急成長チャンネル検索</h1>
     <form method="get">
-        <input type="text" name="keyword" value="{{ keyword }}" placeholder="キーワードを入力">
-        <label><input type="checkbox" name="growth" {% if filter_growth %}checked{% endif %}> 急成長チャンネルのみ表示</label>
+        <input type="text" name="keyword" placeholder="検索ワード">
+        <label><input type="checkbox" name="growth" {% if request.args.get('growth') %}checked{% endif %}> 急成長チャンネルのみ表示</label>
         <button type="submit">検索</button>
     </form>
-    <br>
     <table border="1">
         <tr>
             <th>チャンネル名</th>

@@ -1,3 +1,4 @@
+
 from flask import Flask, render_template, request
 from googleapiclient.discovery import build
 from dateutil import parser
@@ -5,7 +6,6 @@ import datetime
 import os
 
 app = Flask(__name__)
-
 API_KEY = os.environ.get("YOUTUBE_API_KEY")
 
 @app.route("/")
@@ -23,9 +23,12 @@ def index():
     ).execute()
 
     channels = []
+    added_channel_ids = set()
+
     for item in search_response["items"]:
         channel_id = item["snippet"]["channelId"]
-        channel_title = item["snippet"]["channelTitle"]
+        if channel_id in added_channel_ids:
+            continue
 
         ch_data = youtube.channels().list(
             part="snippet,statistics",
@@ -39,17 +42,19 @@ def index():
             subs = int(stats.get("subscriberCount", 0))
             views = int(stats.get("viewCount", 0))
 
-            if not filter_growth or ((datetime.datetime.utcnow() - published_at.replace(tzinfo=None)).days <= 180 and subs >= 1000 and views >= 10000):
+            # 急成長フィルタ
+            if not filter_growth or (
+                (datetime.datetime.utcnow() - published_at.replace(tzinfo=None)).days <= 180
+                and subs >= 1000 and views >= 10000
+            ):
                 channels.append({
-                    "title": channel_title,
+                    "title": ch["snippet"]["title"],
                     "url": f"https://www.youtube.com/channel/{channel_id}",
                     "subscribers": f"{subs:,}",
                     "views": f"{views:,}",
                     "category": "推測中",
                     "created": published_at.strftime("%Y/%m/%d")
                 })
+                added_channel_ids.add(channel_id)
 
-    return render_template("index.html", channels=channels, keyword=keyword, filter_growth=filter_growth)
-
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=10000)
+    return render_template("index.html", channels=channels)
