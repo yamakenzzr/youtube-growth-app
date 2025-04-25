@@ -5,11 +5,12 @@ import datetime
 
 app = Flask(__name__)
 
-API_KEY = "AIzaSyCJqhTmE9qzZrAAtthF2vT-tnYUfVvHdTY"
+API_KEY = "YOUR_API_KEY"  # ご自身のAPIキーに置き換えてください
 
 @app.route("/")
 def index():
     keyword = request.args.get("keyword", "教育")
+    use_filter = request.args.get("filter") == "on"
 
     youtube = build("youtube", "v3", developerKey=API_KEY)
 
@@ -44,7 +45,26 @@ def index():
             subs = int(stats.get("subscriberCount", 0))
             views = int(stats.get("viewCount", 0))
 
-            if (datetime.datetime.utcnow() - published_at.replace(tzinfo=None)).days <= 365 and subs >= 100 and views >= 1000:
+            # フィルター条件
+            published_within_days = 180
+            min_subscribers = 1000
+            min_views = 10000
+
+            if use_filter:
+                if (
+                    (datetime.datetime.utcnow() - published_at.replace(tzinfo=None)).days <= published_within_days
+                    and subs >= min_subscribers
+                    and views >= min_views
+                ):
+                    channels.append({
+                        "title": channel_title,
+                        "url": f"https://www.youtube.com/channel/{channel_id}",
+                        "subscribers": f"{subs:,}",
+                        "views": f"{views:,}",
+                        "category": "推測中",
+                        "created": published_at.strftime("%Y/%m/%d")
+                    })
+            else:
                 channels.append({
                     "title": channel_title,
                     "url": f"https://www.youtube.com/channel/{channel_id}",
@@ -54,7 +74,7 @@ def index():
                     "created": published_at.strftime("%Y/%m/%d")
                 })
 
-    return render_template("index.html", channels=channels, keyword=keyword)
+    return render_template("index.html", channels=channels, keyword=keyword, use_filter=use_filter)
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=10000)

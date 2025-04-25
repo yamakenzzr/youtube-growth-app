@@ -16,6 +16,9 @@
     <h1>YouTube急成長チャンネル検索</h1>
     <form method="get" action="/">
         <input type="text" name="keyword" value="{{ keyword }}" placeholder="検索キーワードを入力">
+        <label>
+            <input type="checkbox" name="filter" {% if use_filter %}checked{% endif %}> 急成長チャンネルのみ表示
+        </label>
         <input type="submit" value="検索">
     </form>
 
