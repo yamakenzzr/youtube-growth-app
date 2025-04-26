@@ -7,6 +7,23 @@ import os
 app = Flask(__name__)
 API_KEY = os.environ.get("YOUTUBE_API_KEY")
 
+GENRE_KEYWORDS = {
+    "教育": ["勉強", "教育", "学習", "講義", "参考書", "解説"],
+    "エンタメ": ["エンタメ", "バラエティ", "お笑い", "ドッキリ", "コント"],
+    "ゲーム": ["ゲーム", "実況", "攻略", "プレイ動画"],
+    "ビジネス": ["ビジネス", "副業", "起業", "投資", "企業分析"],
+    "Vlog": ["vlog", "日常", "旅行", "暮らし", "ルーティン"],
+    "音楽": ["音楽", "歌ってみた", "カバー", "演奏", "ピアノ"],
+    "スピリチュアル": ["占い", "スピリチュアル", "波動", "ヒーリング", "引き寄せ"],
+}
+
+def guess_genre(text):
+    for genre, keywords in GENRE_KEYWORDS.items():
+        for keyword in keywords:
+            if keyword.lower() in text.lower():
+                return genre
+    return "その他"
+
 @app.route("/")
 def index():
     keyword = request.args.get("keyword", "")
@@ -22,15 +39,19 @@ def index():
     ).execute()
 
     channels = []
-    seen_channels = set()
+    seen_ids = set()
 
     for item in search_response.get("items", []):
         channel_id = item["snippet"]["channelId"]
-        channel_title = item["snippet"]["channelTitle"]
-
-        if channel_id in seen_channels:
+        if channel_id in seen_ids:
             continue
-        seen_channels.add(channel_id)
+        seen_ids.add(channel_id)
+
+        channel_title = item["snippet"]["channelTitle"]
+        video_title = item["snippet"]["title"]
+        video_description = item["snippet"].get("description", "")
+
+        genre = guess_genre(video_title + " " + video_description)
 
         ch_data = youtube.channels().list(
             part="snippet,statistics",
@@ -44,13 +65,15 @@ def index():
             subs = int(stats.get("subscriberCount", 0))
             views = int(stats.get("viewCount", 0))
 
-            if not filter_growth or ((datetime.datetime.utcnow() - published_at.replace(tzinfo=None)).days <= 180 and subs >= 1000 and views >= 10000):
+            if not filter_growth or (
+                (datetime.datetime.utcnow() - published_at.replace(tzinfo=None)).days <= 180 and subs >= 1000 and views >= 10000
+            ):
                 channels.append({
                     "title": channel_title,
                     "url": f"https://www.youtube.com/channel/{channel_id}",
                     "subscribers": f"{subs:,}",
                     "views": f"{views:,}",
-                    "category": "推測中",
+                    "category": genre,
                     "created": published_at.strftime("%Y/%m/%d")
                 })
 
