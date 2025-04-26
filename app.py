@@ -1,3 +1,4 @@
+
 from flask import Flask, render_template, request
 from googleapiclient.discovery import build
 from dateutil import parser
@@ -82,16 +83,20 @@ def index():
                 (datetime.datetime.utcnow() - published_at.replace(tzinfo=None)).days <= 180 and subs >= 1000 and views >= 10000
             ):
                 if (not selected_genre or genre == selected_genre):
+                    months_since_creation = max((datetime.datetime.utcnow() - published_at).days / 30, 1)
+                    monthly_views = views / months_since_creation
+                    estimated_monthly_income = int(monthly_views * 0.3)
                     channels.append({
                         "title": channel_title,
                         "url": f"https://www.youtube.com/channel/{channel_id}",
                         "subscribers": f"{subs:,}",
                         "views": f"{views:,}",
                         "category": genre,
-                        "created": published_at.strftime("%Y/%m/%d")
+                        "created": published_at.strftime("%Y/%m/%d"),
+                        "estimated_income": f"{estimated_monthly_income:,}"
                     })
 
-    return render_template("index.html", channels=channels, genres=GENRE_KEYWORDS.keys())
+    return render_template("index.html", channels=channels, genres=GENRE_KEYWORDS.keys(), rivals=len(channels))
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))
