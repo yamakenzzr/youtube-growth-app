@@ -7,6 +7,10 @@ import math
 
 app = Flask(__name__)
 
+@app.route('/healthz')
+def health_check():
+    return "ok"
+    
 API_KEY = os.environ.get("YOUTUBE_API_KEY")
 
 def safe_get(value, default=0):
