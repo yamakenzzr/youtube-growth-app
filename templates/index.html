@@ -1,37 +1,29 @@
-
 <!DOCTYPE html>
 <html>
 <head>
-    <meta charset="UTF-8">
-    <title>YouTube急成長チャンネル検索＋月間収益推定版</title>
+    <meta charset="utf-8">
+    <title>YouTube急成長チャンネル検索</title>
 </head>
 <body>
-    <h1>YouTube急成長チャンネル検索＋月間収益推定版</h1>
+    <h1>YouTube急成長チャンネル検索</h1>
     <form method="get">
-        <input type="text" name="keyword" placeholder="キーワードを入力" value="{{ request.args.get('keyword', '') }}">
-        <select name="genre">
-            <option value="">ジャンルを選択（すべて）</option>
-            {% for g in genres %}
-            <option value="{{ g }}" {% if request.args.get('genre') == g %}selected{% endif %}>{{ g }}</option>
-            {% endfor %}
-        </select>
-        <label><input type="checkbox" name="growth" value="on" {% if request.args.get('growth') == 'on' %}checked{% endif %}> 急成長チャンネルのみ</label>
+        <input type="text" name="keyword" value="{{ keyword }}" placeholder="キーワードで検索">
+        <label><input type="checkbox" name="growth" {% if filter_growth %}checked{% endif %}> 急成長チャンネルのみ表示</label>
         <button type="submit">検索</button>
     </form>
-    <h3>ライバル数：{{ rivals }} 件</h3>
     <table border="1">
-        <tr><th>チャンネル名</th><th>登録者数</th><th>総再生数</th><th>カテゴリ</th><th>作成日</th><th>月間推定収益（円）</th></tr>
+        <tr>
+            <th>チャンネル名</th><th>登録者数</th><th>総再生数</th><th>作成日</th><th>収益推定（月）</th>
+        </tr>
         {% for ch in channels %}
         <tr>
-            <td><a href="{{ ch.url }}" target="_blank">{{ ch.title }}</a></td>
-            <td>{{ ch.subscribers }}</td>
-            <td>{{ ch.views }}</td>
-            <td>{{ ch.category }}</td>
+            <td>{{ ch.title }}</td>
+            <td>{{ "{:,}".format(ch.subs) }}</td>
+            <td>{{ "{:,}".format(ch.views) }}</td>
             <td>{{ ch.created }}</td>
-            <td>{{ ch.estimated_income }}</td>
+            <td>${{ "{:,}".format(ch.income) }}</td>
         </tr>
         {% endfor %}
     </table>
-    <p>※推定収益は参考値です。実際の収益とは異なる場合があります。</p>
 </body>
 </html>
