@@ -2,12 +2,18 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>YouTube急成長チャンネル検索＋ジャンル推定版</title>
+    <title>YouTube急成長チャンネル検索＋ジャンル分類版</title>
 </head>
 <body>
-    <h1>YouTube急成長チャンネル検索＋ジャンル推定版</h1>
+    <h1>YouTube急成長チャンネル検索</h1>
     <form method="get">
-        <input type="text" name="keyword" placeholder="検索キーワード" value="{{ request.args.get('keyword', '') }}">
+        <input type="text" name="keyword" placeholder="キーワードを入力" value="{{ request.args.get('keyword', '') }}">
+        <select name="genre">
+            <option value="">ジャンルを選択（すべて）</option>
+            {% for g in genres %}
+            <option value="{{ g }}" {% if request.args.get('genre') == g %}selected{% endif %}>{{ g }}</option>
+            {% endfor %}
+        </select>
         <label><input type="checkbox" name="growth" value="on" {% if request.args.get('growth') == 'on' %}checked{% endif %}> 急成長チャンネルのみ</label>
         <button type="submit">検索</button>
     </form>
