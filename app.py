@@ -33,7 +33,7 @@ def safe_get(value, default=0):
     "2ch・まとめ": ["2ch", "5ch", "まとめ", "掲示板", "なんJ", "VIP"],
     "Vlog": ["Vlog", "ルーティン", "日常", "暮らし"],
     "食・料理": ["料理", "レシピ", "グルメ", "食べ歩き", "食レポ"],
-    "自然・アウトドア": ["キャンプ", "登山", "釣り", "アウトドア", "自然"],
+    "自然・アウトドア": ["アウトドア", "キャンプ", "登山", "釣り"],
     "子育て・育児": ["子育て", "育児", "赤ちゃん", "ママ", "パパ"],
     "お金・節約": ["節約", "家計管理", "貯金", "投資信託"],
     "専門解説系": ["解説", "レビュー", "検証", "比較", "まとめ"],
@@ -77,37 +77,39 @@ def index():
             channel_title = item["snippet"]["title"]
             published_at = item["snippet"]["publishedAt"]
 
+            # ✨ チャンネル統計情報取得
             stats_response = youtube.channels().list(
                 part="statistics",
                 id=channel_id
             ).execute()
 
-            if stats_response.get("items"):
-                stats = stats_response["items"][0]["statistics"]
-                subs = safe_get(stats.get("subscriberCount"))
-                views = safe_get(stats.get("viewCount"))
-                videos = safe_get(stats.get("videoCount"))
+            # ✨ 統計データ取得できなければスキップ
+            if not stats_response.get("items"):
+                continue
 
-                months_since_creation = max((datetime.utcnow() - datetime.strptime(published_at, "%Y-%m-%dT%H:%M:%SZ")).days / 30, 1)
-                estimated_income = int(views * 0.15 / months_since_creation)
-                estimated_total_income = int(views * 0.15)
+            stats = stats_response["items"][0]["statistics"]
+            subs = safe_get(stats.get("subscriberCount"))
+            views = safe_get(stats.get("viewCount"))
+            videos = safe_get(stats.get("videoCount"))
 
-                category = "まとめ系" if "2ch" in channel_title or "まとめ" in channel_title else "その他"
-                genre = estimate_genre(channel_title)
+            months_since_creation = max((datetime.utcnow() - datetime.strptime(published_at, "%Y-%m-%dT%H:%M:%SZ")).days / 30, 1)
+            estimated_income = int(views * 0.3 / months_since_creation)
+            estimated_total_income = int(views * 0.3)
 
-                if not genre_filter or genre_filter == genre:
-                    if not growth_filter or (subs >= 1000 and views >= 100000):
-                        channels.append({
-                            "title": channel_title,
-                            "id": channel_id,
-                            "subs": subs,
-                            "views": views,
-                            "estimated_income": estimated_income,
-                            "estimated_total_income": estimated_total_income,
-                            "published_at": published_at,
-                            "category": category,
-                            "genre": genre
-                        })
+            genre = estimate_genre(channel_title)
+
+            if not genre_filter or genre_filter == genre:
+                if not growth_filter or (subs >= 1000 and views >= 10000):
+                    channels.append({
+                        "title": channel_title,
+                        "id": channel_id,
+                        "subs": subs,
+                        "views": views,
+                        "estimated_income": estimated_income,
+                        "estimated_total_income": estimated_total_income,
+                        "published_at": published_at[:10],
+                        "genre": genre
+                    })
 
     return render_template("index.html", channels=channels, keyword=keyword, growth_filter=growth_filter, genre_filter=genre_filter)
 
