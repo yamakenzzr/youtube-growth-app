@@ -5,28 +5,39 @@
     <title>YouTube急成長チャンネル検索</title>
 </head>
 <body>
-    <h1>チャンネル検索（/search）</h1>
-    <form method="get" action="/search">
-        <input type="text" name="keyword" placeholder="キーワードを入力" value="{{ keyword }}">
+    <h1>YouTube急成長チャンネル検索</h1>
+
+    <form method="GET" action="/">
+        <input type="text" name="keyword" value="{{ keyword }}" placeholder="キーワードを入力">
+        <label><input type="checkbox" name="growth" {% if growth_filter %}checked{% endif %}> 急成長チャンネルのみ表示</label>
         <button type="submit">検索</button>
     </form>
-    <table border="1">
-        <tr>
-            <th>チャンネル名</th>
-            <th>登録者数</th>
-            <th>総再生数</th>
-            <th>月間推定収益</th>
-            <th>作成日</th>
-        </tr>
-        {% for ch in channels %}
-        <tr>
-            <td>{{ ch.title }}</td>
-            <td>{{ ch.subs }}</td>
-            <td>{{ ch.views }}</td>
-            <td>{{ ch.income }}</td>
-            <td>{{ ch.published_at }}</td>
-        </tr>
-        {% endfor %}
-    </table>
+
+    {% if channels %}
+        <table border="1" cellpadding="5">
+            <thead>
+                <tr>
+                    <th>チャンネル名</th>
+                    <th>登録者数</th>
+                    <th>総再生数</th>
+                    <th>推定月収</th>
+                    <th>作成日</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for channel in channels %}
+                <tr>
+                    <td>{{ channel.title }}</td>
+                    <td>{{ channel.subs }}</td>
+                    <td>{{ channel.views }}</td>
+                    <td>{{ channel.estimated_income }} 円</td>
+                    <td>{{ channel.published_at }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p>検索キーワードを入力してください。</p>
+    {% endif %}
 </body>
 </html>
