@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -6,10 +5,9 @@
     <title>YouTube急成長チャンネル検索</title>
 </head>
 <body>
-    <h1>YouTube急成長チャンネル検索</h1>
-    <form method="get">
-        <input type="text" name="keyword" value="{{ keyword }}" placeholder="キーワードを入力">
-        <label><input type="checkbox" name="growth" {% if growth_filter %}checked{% endif %}> 急成長チャンネルのみ表示</label>
+    <h1>チャンネル検索（/search）</h1>
+    <form method="get" action="/search">
+        <input type="text" name="keyword" placeholder="キーワードを入力" value="{{ keyword }}">
         <button type="submit">検索</button>
     </form>
     <table border="1">
@@ -17,7 +15,7 @@
             <th>チャンネル名</th>
             <th>登録者数</th>
             <th>総再生数</th>
-            <th>推定収益 (月間)</th>
+            <th>月間推定収益</th>
             <th>作成日</th>
         </tr>
         {% for ch in channels %}
@@ -25,7 +23,7 @@
             <td>{{ ch.title }}</td>
             <td>{{ ch.subs }}</td>
             <td>{{ ch.views }}</td>
-            <td>{{ ch.estimated_income }}</td>
+            <td>{{ ch.income }}</td>
             <td>{{ ch.published_at }}</td>
         </tr>
         {% endfor %}
