@@ -1,122 +1,99 @@
-import os
-from flask import Flask, request, render_template
+from flask import Flask, render_template, request, session
 from googleapiclient.discovery import build
-from datetime import datetime, timedelta
+from dateutil import parser
+import datetime
+import os
+
+# 設定ファイル読み込み
+import config
 
 app = Flask(__name__)
+app.secret_key = os.urandom(24)
 
+# YouTube APIキー（環境変数から取得）
 API_KEY = os.environ.get("YOUTUBE_API_KEY")
 
-def safe_get(value, default=0):
-    try:
-        return int(value)
-    except (TypeError, ValueError):
-        return default
-
-ジャンルキーワード = {
-    "映画とアニメ": ["映画", "アニメ", "シネマ", "フィルム"],
-    "自動車と乗り物": ["車", "バイク", "自動車", "乗り物"],
-    "音楽": ["音楽", "歌ってみた", "カバー", "演奏", "ライブ", "ピアノ"],
-    "ペットと動物": ["ペット", "犬", "猫", "動物", "うさぎ", "ハムスター"],
-    "スポーツ": ["サッカー", "野球", "バスケ", "マラソン", "筋トレ"],
-    "旅行とイベント": ["旅行", "観光", "旅", "ツアー", "イベント"],
-    "ゲーム": ["ゲーム", "実況", "攻略", "プレイ動画", "配信"],
-    "ブログ": ["vlog", "日常", "暮らし", "お出かけ"],
-    "コメディ": ["コメディ", "バラエティ", "お笑い", "ドッキリ"],
-    "エンターテイメント": ["エンタメ", "エンターテイメント", "パフォーマンス"],
-    "ニュースと政治": ["ニュース", "政治", "社会問題", "時事"],
-    "ハウツーとスタイル": ["ハウツー", "DIY", "ライフハック", "スタイル"],
-    "教育": ["勉強", "教育", "学習", "講義", "授業", "参考書"],
-    "科学と技術": ["科学", "テクノロジー", "宇宙", "AI", "ロボット"],
-    "美容・ファッション": ["メイク", "コスメ", "スキンケア", "美容", "ファッション"],
-    "スピリチュアル": ["占い", "スピリチュアル", "波動", "ヒーリング", "引き寄せ"],
-    "2ch・まとめ": ["2ch", "5ch", "まとめ", "掲示板", "なんJ", "VIP"],
-    "Vlog": ["Vlog", "ルーティン", "日常", "暮らし"],
-    "食・料理": ["料理", "レシピ", "グルメ", "食べ歩き", "食レポ"],
-    "自然・アウトドア": ["アウトドア", "キャンプ", "登山", "釣り"],
-    "子育て・育児": ["子育て", "育児", "赤ちゃん", "ママ", "パパ"],
-    "お金・節約": ["節約", "家計管理", "貯金", "投資信託"],
-    "専門解説系": ["解説", "レビュー", "検証", "比較", "まとめ"],
-    "懐かし（レトロ）系": ["レトロ", "昭和", "昔", "懐かし"],
-    "バイク": ["バイク", "ツーリング", "モトブログ"],
-    "オカルト": ["オカルト", "都市伝説", "心霊", "ホラー"],
-}
-
-def estimate_genre(title):
-    for genre, keywords in ジャンルキーワード.items():
-        for keyword in keywords:
-            if keyword.lower() in title.lower():
-                return genre
-    return "その他"
-
-@app.route("/")
+@app.route("/", methods=["GET", "POST"])
 def index():
-    keyword = request.args.get("keyword", "")
-    genre_filter = request.args.get("genre", "")
-    growth_filter = request.args.get("growth", "") == "on"
+    # セッションに検索回数を保持（初回アクセス時）
+    if "search_count" not in session:
+        session["search_count"] = 0
+        session["last_reset"] = datetime.datetime.utcnow().date()
+
+    # 毎日リセット（0時）
+    today = datetime.datetime.utcnow().date()
+    if session.get("last_reset") != today:
+        session["search_count"] = 0
+        session["last_reset"] = today
+
     channels = []
 
-    if keyword:
+    if request.method == "POST":
+        if session["search_count"] >= config.MAX_SEARCH_COUNT_PER_DAY:
+            return render_template("index.html", channels=[], message="1日の検索回数制限に達しました。明日までお待ちください。", search_count=session["search_count"], max_count=config.MAX_SEARCH_COUNT_PER_DAY)
+
+        keyword = request.form.get("keyword")
+        category = request.form.get("category")
+        use_3m_filter = request.form.get("use_3m_filter")
+        use_6m_filter = request.form.get("use_6m_filter")
+
         youtube = build("youtube", "v3", developerKey=API_KEY)
+
+        # 動画検索
         search_response = youtube.search().list(
             q=keyword,
-            type="channel",
             part="snippet",
-            maxResults=20,
-            publishedAfter=(datetime.utcnow() - timedelta(days=180)).isoformat("T") + "Z"
+            type="video",
+            maxResults=30,
+            publishedAfter=(datetime.datetime.utcnow() - datetime.timedelta(days=180)).isoformat("T") + "Z"
         ).execute()
 
-        seen_channel_ids = set()
+        seen_channels = set()
 
         for item in search_response.get("items", []):
             channel_id = item["snippet"]["channelId"]
-            if channel_id in seen_channel_ids:
+            channel_title = item["snippet"]["channelTitle"]
+
+            # チャンネル重複防止
+            if channel_id in seen_channels:
                 continue
-            seen_channel_ids.add(channel_id)
+            seen_channels.add(channel_id)
 
-            channel_title = item["snippet"]["title"]
-            published_at = item["snippet"]["publishedAt"]
-
-            # ✨ チャンネル統計情報取得
-            stats_response = youtube.channels().list(
-                part="statistics",
+            # チャンネル情報取得
+            ch_data = youtube.channels().list(
+                part="snippet,statistics",
                 id=channel_id
             ).execute()
 
-            # ✨ 統計データ取得できなければスキップ
-            if not stats_response.get("items"):
-                continue
+            if ch_data["items"]:
+                ch = ch_data["items"][0]
+                published_at = parser.parse(ch["snippet"]["publishedAt"])
+                stats = ch["statistics"]
 
-            stats = stats_response["items"][0]["statistics"]
-            subs = safe_get(stats.get("subscriberCount"))
-            views = safe_get(stats.get("viewCount"))
-            videos = safe_get(stats.get("videoCount"))
+                subs = int(stats.get("subscriberCount", 0))
+                views = int(stats.get("viewCount", 0))
 
-            months_since_creation = max((datetime.utcnow() - datetime.strptime(published_at, "%Y-%m-%dT%H:%M:%SZ")).days / 30, 1)
-            estimated_income = int(views * 0.3 / months_since_creation)
-            estimated_total_income = int(views * 0.3)
+                # 成長フィルター適用
+                is_new_channel = True
+                if use_3m_filter:
+                    if (datetime.datetime.utcnow() - published_at).days > config.NEW_CHANNEL_DAYS_3M:
+                        is_new_channel = False
+                elif use_6m_filter:
+                    if (datetime.datetime.utcnow() - published_at).days > config.NEW_CHANNEL_DAYS_6M:
+                        is_new_channel = False
 
-            genre = estimate_genre(channel_title)
-
-            if not genre_filter or genre_filter == genre:
-                if not growth_filter or (subs >= 1000 and views >= 10000):
+                if is_new_channel and subs >= 1000 and views >= 10000:
                     channels.append({
                         "title": channel_title,
-                        "id": channel_id,
-                        "subs": subs,
-                        "views": views,
-                        "estimated_income": estimated_income,
-                        "estimated_total_income": estimated_total_income,
-                        "published_at": published_at[:10],
-                        "genre": genre
+                        "url": f"https://www.youtube.com/channel/{channel_id}",
+                        "subscribers": f"{subs:,}",
+                        "views": f"{views:,}",
+                        "created": published_at.strftime("%Y/%m/%d")
                     })
 
-    return render_template("index.html", channels=channels, keyword=keyword, growth_filter=growth_filter, genre_filter=genre_filter)
+        session["search_count"] += 1  # 検索回数カウントアップ
 
-@app.route("/healthz")
-def health_check():
-    return "Service Running", 200
+    return render_template("index.html", channels=channels, message=None, search_count=session["search_count"], max_count=config.MAX_SEARCH_COUNT_PER_DAY)
 
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 10000))
-    app.run(host="0.0.0.0", port=port)
+    app.run(host="0.0.0.0", port=10000)
