@@ -14,17 +14,6 @@
     <form method="post">
         🔍 キーワード検索：<input type="text" name="keyword" required><br><br>
 
-        📂 カテゴリ選択：
-        <select name="category">
-            <option value="">--カテゴリ未指定--</option>
-            <option value="教育">教育</option>
-            <option value="エンタメ">エンタメ</option>
-            <option value="ゲーム">ゲーム</option>
-            <option value="ビジネス">ビジネス</option>
-            <option value="Vlog">Vlog</option>
-            <!-- 必要ならさらに追加 -->
-        </select><br><br>
-
         🎯 成長フィルター：<br>
         <input type="checkbox" name="use_6m_filter" value="on"> 登録6か月以内<br>
         <input type="checkbox" name="use_3m_filter" value="on"> 登録3か月以内<br><br>
@@ -55,12 +44,6 @@
         </tr>
         {% endfor %}
     </table>
-
-    <br><br>
-
-    <form action="/logout" method="post">
-        <button type="submit">ログアウト</button>
-    </form>
 
 </body>
 </html>
