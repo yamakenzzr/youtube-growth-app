@@ -9,7 +9,7 @@ app.secret_key = os.urandom(24)
 
 API_KEY = os.environ.get("YOUTUBE_API_KEY")
 
-# 登録者数・再生数の表記を漢字付きに変換
+# 登録者数・再生数を漢字付きで整形する
 def format_count(n, type="人"):
     if n < 10000:
         return f"{n:,}{type}"
@@ -28,14 +28,18 @@ def index():
         session["last_reset"] = today
 
     channels = []
+    message = None
 
     if request.method == "POST":
-        if session["search_count"] >= config.MAX_SEARCH_COUNT_PER_DAY:
+        # 必ずカウントアップ
+        session["search_count"] += 1
+
+        if session["search_count"] > config.MAX_SEARCH_COUNT_PER_DAY:
             return render_template("index.html", channels=[], message="1日の検索回数制限に達しました。", search_count=session["search_count"], max_count=config.MAX_SEARCH_COUNT_PER_DAY)
 
         keyword = request.form.get("keyword", "")
-        use_3m_filter = request.form.get("use_3m_filter")
-        use_6m_filter = request.form.get("use_6m_filter")
+        use_3m_filter = request.form.get("use_3m_filter") == "on"
+        use_6m_filter = request.form.get("use_6m_filter") == "on"
 
         youtube = build("youtube", "v3", developerKey=API_KEY)
 
@@ -77,13 +81,12 @@ def index():
                 except Exception:
                     continue
 
+                # 成長フィルター適用
                 is_new_channel = True
-                if use_3m_filter:
-                    if (datetime.datetime.utcnow() - published_at).days > config.NEW_CHANNEL_DAYS_3M:
-                        is_new_channel = False
-                elif use_6m_filter:
-                    if (datetime.datetime.utcnow() - published_at).days > config.NEW_CHANNEL_DAYS_6M:
-                        is_new_channel = False
+                if use_3m_filter and (datetime.datetime.utcnow() - published_at).days > config.NEW_CHANNEL_DAYS_3M:
+                    is_new_channel = False
+                if use_6m_filter and (datetime.datetime.utcnow() - published_at).days > config.NEW_CHANNEL_DAYS_6M:
+                    is_new_channel = False
 
                 if is_new_channel and subs >= 1000 and views >= 10000:
                     channels.append({
@@ -94,9 +97,7 @@ def index():
                         "created": published_at.strftime("%Y/%m/%d")
                     })
 
-        session["search_count"] += 1
-
-    return render_template("index.html", channels=channels, message=None, search_count=session["search_count"], max_count=config.MAX_SEARCH_COUNT_PER_DAY)
+    return render_template("index.html", channels=channels, message=message, search_count=session["search_count"], max_count=config.MAX_SEARCH_COUNT_PER_DAY)
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=10000)
