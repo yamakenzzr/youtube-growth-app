@@ -2,95 +2,65 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>YouTube急成長チャンネル検索</title>
-    <style>
-        table {
-            border-collapse: collapse;
-            width: 100%;
-        }
-        th, td {
-            border: 1px solid #aaa;
-            padding: 8px;
-            text-align: center;
-        }
-        td.num {
-            text-align: right;
-        }
-    </style>
+    <title>YouTube急成長チャンネル検索ツール</title>
 </head>
 <body>
-    <h1>YouTube急成長チャンネル検索</h1>
+    <h1>YouTube急成長チャンネル検索ツール</h1>
 
-    <form method="GET" action="/">
-        <input type="text" name="keyword" value="{{ keyword }}" placeholder="キーワードを入力">
-        
-        <select name="genre">
-            <option value="">ジャンル選択なし</option>
-            <optgroup label="公式カテゴリ">
-                <option value="映画とアニメ" {% if genre_filter == "映画とアニメ" %}selected{% endif %}>映画とアニメ</option>
-                <option value="自動車と乗り物" {% if genre_filter == "自動車と乗り物" %}selected{% endif %}>自動車と乗り物</option>
-                <option value="音楽" {% if genre_filter == "音楽" %}selected{% endif %}>音楽</option>
-                <option value="ペットと動物" {% if genre_filter == "ペットと動物" %}selected{% endif %}>ペットと動物</option>
-                <option value="スポーツ" {% if genre_filter == "スポーツ" %}selected{% endif %}>スポーツ</option>
-                <option value="旅行とイベント" {% if genre_filter == "旅行とイベント" %}selected{% endif %}>旅行とイベント</option>
-                <option value="ゲーム" {% if genre_filter == "ゲーム" %}selected{% endif %}>ゲーム</option>
-                <option value="ブログ" {% if genre_filter == "ブログ" %}selected{% endif %}>ブログ</option>
-                <option value="コメディ" {% if genre_filter == "コメディ" %}selected{% endif %}>コメディ</option>
-                <option value="エンターテイメント" {% if genre_filter == "エンターテイメント" %}selected{% endif %}>エンターテイメント</option>
-                <option value="ニュースと政治" {% if genre_filter == "ニュースと政治" %}selected{% endif %}>ニュースと政治</option>
-                <option value="ハウツーとスタイル" {% if genre_filter == "ハウツーとスタイル" %}selected{% endif %}>ハウツーとスタイル</option>
-                <option value="教育" {% if genre_filter == "教育" %}selected{% endif %}>教育</option>
-                <option value="科学と技術" {% if genre_filter == "科学と技術" %}selected{% endif %}>科学と技術</option>
-            </optgroup>
-            <optgroup label="独自ジャンル">
-                <option value="美容・ファッション" {% if genre_filter == "美容・ファッション" %}selected{% endif %}>美容・ファッション</option>
-                <option value="スピリチュアル" {% if genre_filter == "スピリチュアル" %}selected{% endif %}>スピリチュアル</option>
-                <option value="2ch・まとめ" {% if genre_filter == "2ch・まとめ" %}selected{% endif %}>2ch・まとめ</option>
-                <option value="Vlog" {% if genre_filter == "Vlog" %}selected{% endif %}>Vlog（日常系）</option>
-                <option value="食・料理" {% if genre_filter == "食・料理" %}selected{% endif %}>食・料理</option>
-                <option value="自然・アウトドア" {% if genre_filter == "自然・アウトドア" %}selected{% endif %}>自然・アウトドア</option>
-                <option value="子育て・育児" {% if genre_filter == "子育て・育児" %}selected{% endif %}>子育て・育児</option>
-                <option value="お金・節約" {% if genre_filter == "お金・節約" %}selected{% endif %}>お金・節約</option>
-                <option value="専門解説系" {% if genre_filter == "専門解説系" %}selected{% endif %}>専門解説系</option>
-                <option value="懐かし（レトロ）系" {% if genre_filter == "懐かし（レトロ）系" %}selected{% endif %}>懐かし（レトロ）系</option>
-                <option value="バイク" {% if genre_filter == "バイク" %}selected{% endif %}>バイク</option>
-                <option value="オカルト" {% if genre_filter == "オカルト" %}selected{% endif %}>オカルト</option>
-            </optgroup>
-        </select>
+    {% if message %}
+        <p style="color:red;">{{ message }}</p>
+    {% endif %}
 
-        <label><input type="checkbox" name="growth" {% if growth_filter %}checked{% endif %}> 急成長チャンネルのみ表示</label>
-        <button type="submit">検索</button>
+    <form method="post">
+        🔍 キーワード検索：<input type="text" name="keyword" required><br><br>
+
+        📂 カテゴリ選択：
+        <select name="category">
+            <option value="">--カテゴリ未指定--</option>
+            <option value="教育">教育</option>
+            <option value="エンタメ">エンタメ</option>
+            <option value="ゲーム">ゲーム</option>
+            <option value="ビジネス">ビジネス</option>
+            <option value="Vlog">Vlog</option>
+            <!-- 必要ならさらに追加 -->
+        </select><br><br>
+
+        🎯 成長フィルター：<br>
+        <input type="checkbox" name="use_6m_filter" value="on"> 登録6か月以内<br>
+        <input type="checkbox" name="use_3m_filter" value="on"> 登録3か月以内<br><br>
+
+        🎯 今日の検索回数：{{ search_count }}回 / {{ max_count }}回<br><br>
+
+        <button type="submit" {% if search_count >= max_count %}disabled{% endif %}>検索する</button>
     </form>
 
-    {% if channels %}
-        <table>
-            <thead>
-                <tr>
-                    <th>チャンネル名</th>
-                    <th>登録者数</th>
-                    <th>総再生数</th>
-                    <th>推定月収（円）</th>
-                    <th>推定総収入（円）</th>
-                    <th>ジャンル</th>
-                    <th>作成日</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for ch in channels %}
-                <tr>
-                    <td><a href="https://www.youtube.com/channel/{{ ch.id }}" target="_blank">{{ ch.title }}</a></td>
-                    <td class="num">{{ ch.subs }}</td>
-                    <td class="num">{{ ch.views }}</td>
-                    <td class="num">{{ ch.estimated_income }}</td>
-                    <td class="num">{{ ch.estimated_total_income }}</td>
-                    <td>{{ ch.genre }}</td>
-                    <td>{{ ch.published_at }}</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    {% else %}
-        <p>キーワードを入力して検索してください。</p>
-    {% endif %}
+    <hr>
+
+    <h2>検索結果</h2>
+    <table border="1">
+        <tr>
+            <th>チャンネル名</th>
+            <th>登録者数</th>
+            <th>総再生数</th>
+            <th>チャンネル作成日</th>
+            <th>リンク</th>
+        </tr>
+        {% for ch in channels %}
+        <tr>
+            <td>{{ ch.title }}</td>
+            <td>{{ ch.subscribers }}</td>
+            <td>{{ ch.views }}</td>
+            <td>{{ ch.created }}</td>
+            <td><a href="{{ ch.url }}" target="_blank">チャンネルへ</a></td>
+        </tr>
+        {% endfor %}
+    </table>
+
+    <br><br>
+
+    <form action="/logout" method="post">
+        <button type="submit">ログアウト</button>
+    </form>
+
 </body>
 </html>
