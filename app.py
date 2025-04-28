@@ -15,66 +15,24 @@ API_KEY = os.environ.get("YOUTUBE_API_KEY")
 
 @app.route("/", methods=["GET", "POST"])
 def index():
-    keyword = request.args.get("keyword", "")
-    selected_category = request.args.get("category", "")
-    filter_6months = request.args.get("filter_6months") == "on"
-    filter_3months = request.args.get("filter_3months") == "on"
+    # セッションに検索回数を保持（初回アクセス時）
+    if "search_count" not in session:
+        session["search_count"] = 0
+        session["last_reset"] = datetime.datetime.utcnow().date()
+
+    # 毎日リセット（0時）
+    today = datetime.datetime.utcnow().date()
+    if session.get("last_reset") != today:
+        session["search_count"] = 0
+        session["last_reset"] = today
 
     channels = []
-    if keyword:
-        search_response = youtube.search().list(
-            q=keyword,
-            type="channel",
-            part="snippet",
-            maxResults=20
-        ).execute()
 
-        for item in search_response.get("items", []):
-            channel_id = item["snippet"]["channelId"]
-            channel_title = item["snippet"]["title"]
-            published_at_str = item["snippet"]["publishedAt"]
+    if request.method == "POST":
+        if session["search_count"] >= config.MAX_SEARCH_COUNT_PER_DAY:
+            return render_template("index.html", channels=[], message="1日の検索回数制限に達しました。明日までお待ちください。", search_count=session["search_count"], max_count=config.MAX_SEARCH_COUNT_PER_DAY)
 
-            # 作成日をdatetime型に変換
-            try:
-                published_at = datetime.strptime(published_at_str, "%Y-%m-%dT%H:%M:%SZ")
-            except ValueError:
-                continue  # 日付形式が違う場合はスキップ
-
-            # 今と比較して何か月前かを計算
-            now = datetime.utcnow()
-            diff_months = (now.year - published_at.year) * 12 + (now.month - published_at.month)
-
-            # 6か月/3か月フィルターを適用
-            if filter_6months and diff_months > 6:
-                continue
-            if filter_3months and diff_months > 3:
-                continue
-
-            # チャンネル統計情報を取得
-            stats_response = youtube.channels().list(
-                part="statistics",
-                id=channel_id
-            ).execute()
-
-            stats = stats_response.get("items", [{}])[0].get("statistics", {})
-            subscriber_count = int(stats.get("subscriberCount", 0))
-            view_count = int(stats.get("viewCount", 0))
-
-            # リンク作成
-            channel_url = f"https://www.youtube.com/channel/{channel_id}"
-
-            # 結果に追加
-            channels.append({
-                "title": channel_title,
-                "subscribers": f"{subscriber_count:,}",
-                "views": f"{view_count:,}",
-                "created_at": published_at.strftime("%Y/%m/%d"),
-                "link": channel_url
-            })
-
-    return render_template("index.html", channels=channels, keyword=keyword)
-
-        category = request.form.get("category")
+        keyword = request.form.get("keyword", "")
         use_3m_filter = request.form.get("use_3m_filter")
         use_6m_filter = request.form.get("use_6m_filter")
 
@@ -108,11 +66,18 @@ def index():
 
             if ch_data["items"]:
                 ch = ch_data["items"][0]
-                published_at = parser.parse(ch["snippet"]["publishedAt"])
                 stats = ch["statistics"]
-
                 subs = int(stats.get("subscriberCount", 0))
                 views = int(stats.get("viewCount", 0))
+
+                published_at_str = ch["snippet"].get("publishedAt")
+                if not published_at_str:
+                    continue  # 登録日情報がないチャンネルはスキップ
+
+                try:
+                    published_at = datetime.datetime.strptime(published_at_str, "%Y-%m-%dT%H:%M:%SZ")
+                except Exception:
+                    continue  # 日付変換できないものはスキップ
 
                 # 成長フィルター適用
                 is_new_channel = True
