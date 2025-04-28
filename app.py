@@ -1,26 +1,27 @@
 from flask import Flask, render_template, request, session
 from googleapiclient.discovery import build
-from dateutil import parser
 import datetime
 import os
-
-# 設定ファイル読み込み
 import config
 
 app = Flask(__name__)
 app.secret_key = os.urandom(24)
 
-# YouTube APIキー（環境変数から取得）
 API_KEY = os.environ.get("YOUTUBE_API_KEY")
+
+# 登録者数・再生数の表記を漢字付きに変換
+def format_count(n, type="人"):
+    if n < 10000:
+        return f"{n:,}{type}"
+    else:
+        return f"{n // 10000}万{type}"
 
 @app.route("/", methods=["GET", "POST"])
 def index():
-    # セッションに検索回数を保持（初回アクセス時）
     if "search_count" not in session:
         session["search_count"] = 0
         session["last_reset"] = datetime.datetime.utcnow().date()
 
-    # 毎日リセット（0時）
     today = datetime.datetime.utcnow().date()
     if session.get("last_reset") != today:
         session["search_count"] = 0
@@ -30,7 +31,7 @@ def index():
 
     if request.method == "POST":
         if session["search_count"] >= config.MAX_SEARCH_COUNT_PER_DAY:
-            return render_template("index.html", channels=[], message="1日の検索回数制限に達しました。明日までお待ちください。", search_count=session["search_count"], max_count=config.MAX_SEARCH_COUNT_PER_DAY)
+            return render_template("index.html", channels=[], message="1日の検索回数制限に達しました。", search_count=session["search_count"], max_count=config.MAX_SEARCH_COUNT_PER_DAY)
 
         keyword = request.form.get("keyword", "")
         use_3m_filter = request.form.get("use_3m_filter")
@@ -38,7 +39,6 @@ def index():
 
         youtube = build("youtube", "v3", developerKey=API_KEY)
 
-        # 動画検索
         search_response = youtube.search().list(
             q=keyword,
             part="snippet",
@@ -53,12 +53,10 @@ def index():
             channel_id = item["snippet"]["channelId"]
             channel_title = item["snippet"]["channelTitle"]
 
-            # チャンネル重複防止
             if channel_id in seen_channels:
                 continue
             seen_channels.add(channel_id)
 
-            # チャンネル情報取得
             ch_data = youtube.channels().list(
                 part="snippet,statistics",
                 id=channel_id
@@ -72,14 +70,13 @@ def index():
 
                 published_at_str = ch["snippet"].get("publishedAt")
                 if not published_at_str:
-                    continue  # 登録日情報がないチャンネルはスキップ
+                    continue
 
                 try:
                     published_at = datetime.datetime.strptime(published_at_str, "%Y-%m-%dT%H:%M:%SZ")
                 except Exception:
-                    continue  # 日付変換できないものはスキップ
+                    continue
 
-                # 成長フィルター適用
                 is_new_channel = True
                 if use_3m_filter:
                     if (datetime.datetime.utcnow() - published_at).days > config.NEW_CHANNEL_DAYS_3M:
@@ -92,12 +89,12 @@ def index():
                     channels.append({
                         "title": channel_title,
                         "url": f"https://www.youtube.com/channel/{channel_id}",
-                        "subscribers": f"{subs:,}",
-                        "views": f"{views:,}",
+                        "subscribers": format_count(subs, "人"),
+                        "views": format_count(views, "回再生"),
                         "created": published_at.strftime("%Y/%m/%d")
                     })
 
-        session["search_count"] += 1  # 検索回数カウントアップ
+        session["search_count"] += 1
 
     return render_template("index.html", channels=channels, message=None, search_count=session["search_count"], max_count=config.MAX_SEARCH_COUNT_PER_DAY)
 
