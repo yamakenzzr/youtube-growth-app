@@ -3,6 +3,7 @@ import os
 from flask import Flask, request, render_template, session
 from googleapiclient.discovery import build
 from datetime import datetime, timezone
+from dateutil.parser import parse
 
 app = Flask(__name__)
 app.secret_key = os.urandom(24)
@@ -68,10 +69,12 @@ def index():
                     title = ch["snippet"].get("title", "")
                     desc = ch["snippet"].get("description", "")
                     pub_raw = ch["snippet"].get("publishedAt", "")
-                    pub_dt = datetime.strptime(pub_raw, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc)
+                    try:
+                        pub_dt = parse(pub_raw).replace(tzinfo=timezone.utc)
+                    except Exception:
+                        continue
                     days_since_creation = (today - pub_dt).days
 
-                    # 成長フィルター
                     if growth_filter == "3" and days_since_creation > 90:
                         continue
                     elif growth_filter == "6" and days_since_creation > 180:
