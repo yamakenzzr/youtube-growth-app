@@ -14,8 +14,10 @@
     input[type="text"], select { padding: 8px; margin-right: 10px; }
     button { padding: 8px 16px; background-color: #007BFF; color: white; border: none; cursor: pointer; }
     button:hover { background-color: #0056b3; }
+    button:disabled { background-color: #cccccc; cursor: not-allowed; }
     .counter { margin-top: 10px; font-weight: bold; }
-    .label { font-weight: bold; margin-right: 8px; }
+    .warning { color: red; font-weight: bold; margin-bottom: 10px; }
+    .search-result { font-weight: bold; margin-top: 10px; margin-bottom: 10px; color: green; }
 </style>
 </head>
 <body>
@@ -32,12 +34,28 @@
         <option value="{{ genre }}" {% if genre == genre_filter %}selected{% endif %}>{{ genre }}</option>
         {% endfor %}
     </select>
-    <button type="submit">検索</button>
+    <button type="submit" {% if blocked %}disabled{% endif %}>検索</button>
 </form>
 
 <div class="counter">
 🔢 検索回数：{{ search_count }} / 50
 </div>
+
+{% if blocked %}
+<div class="warning">
+⚠ 検索回数上限に達しました。明日17時にリセットされます。
+</div>
+{% endif %}
+
+{% if keyword %}
+<div class="search-result">
+{% if channels|length > 0 %}
+📊 検索結果：{{ channels|length }}件
+{% else %}
+🧹 検索結果：0件
+{% endif %}
+</div>
+{% endif %}
 
 {% if channels %}
 <table>
