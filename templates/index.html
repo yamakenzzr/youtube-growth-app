@@ -15,12 +15,14 @@
     button { padding: 8px 16px; background-color: #007BFF; color: white; border: none; cursor: pointer; }
     button:hover { background-color: #0056b3; }
     .counter { margin-top: 10px; font-weight: bold; }
+    .label { font-weight: bold; margin-right: 8px; }
 </style>
 </head>
 <body>
 <h1>YouTube急成長チャンネル検索</h1>
 
 <form method="GET" action="/">
+    <span class="label">🔍 キーワード検索：</span>
     <input type="text" name="keyword" value="{{ keyword }}" placeholder="キーワードを入力">
     <label><input type="checkbox" name="growth_filter" value="3" {% if growth_filter == "3" %}checked{% endif %}>3か月以内</label>
     <label><input type="checkbox" name="growth_filter" value="6" {% if growth_filter == "6" %}checked{% endif %}>6か月以内</label>
