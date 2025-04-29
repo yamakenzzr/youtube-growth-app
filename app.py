@@ -71,7 +71,7 @@ def index():
 
     channels = []
 
-    if keyword and session["search_count"] < 50:
+    if keyword and session["search_count"] < 1:
         youtube = build("youtube", "v3", developerKey=API_KEY)
         search_response = youtube.search().list(
             q=keyword,
