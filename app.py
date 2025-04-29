@@ -1,76 +1,118 @@
-from flask import Flask, render_template, request
 import os
+from flask import Flask, request, render_template
 from googleapiclient.discovery import build
 from datetime import datetime, timedelta
 
 app = Flask(__name__)
 
+@app.route("/healthz")
+def health_check():
+    return "Service Running", 200
+
 API_KEY = os.environ.get("YOUTUBE_API_KEY")
 
-def calculate_estimated_income(views_last_month):
-    rpm = 1.5  # 仮定のYouTube RPM（1再生あたりの収益）
-    return int(views_last_month * rpm / 1000)
+def safe_get(value, default=0):
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return default
 
-@app.route("/", methods=["GET"])
+def estimate_category(title):
+    """チャンネルタイトルからカテゴリを仮判定する関数"""
+    title = title.lower()
+    if "占い" in title:
+        return "エンタメ"
+    elif "バイク" in title:
+        return "趣味・バイク"
+    elif "オカルト" in title or "怪談" in title:
+        return "エンタメ・オカルト"
+    elif "2ch" in title or "スレ" in title:
+        return "まとめ系"
+    else:
+        return "その他"
+
+def guess_genre(title, description=""):
+    """チャンネル名や概要文からジャンルを推定する簡易関数"""
+    text = (title + " " + description).lower()
+
+    genre_keywords = {
+        "教育": ["学習", "勉強", "受験", "資格", "講座"],
+        "ビジネス": ["投資", "副業", "資産", "経済", "起業"],
+        "レトロ": ["昭和", "レトロ", "懐かし", "昔話", "懐古"],
+        "バイク": ["バイク", "ツーリング", "二輪"],
+        "オカルト": ["怪談", "心霊", "都市伝説", "オカルト", "怖い話"],
+        "ゲーム実況": ["ゲーム実況", "プレイ動画", "攻略"],
+        "音楽": ["作業用bgm", "演奏", "ギター", "ピアノ"],
+        "旅行": ["旅行", "観光", "おでかけ"],
+        "料理": ["レシピ", "料理", "クッキング"],
+        "2chまとめ": ["2ch", "スレ", "まとめ"],
+    }
+
+    for genre, keywords in genre_keywords.items():
+        for kw in keywords:
+            if kw in text:
+                return genre
+    return "未分類"
+
+@app.route("/")
 def index():
     keyword = request.args.get("keyword", "")
-    filter_growth = request.args.get("growth", "off") == "on"
+    growth_filter = request.args.get("growth") == "on"
+
+    youtube = build("youtube", "v3", developerKey=API_KEY)
 
     channels = []
+    seen_channel_ids = set()
 
-    if keyword and API_KEY:
-        youtube = build("youtube", "v3", developerKey=API_KEY)
-        now = datetime.utcnow()
-        published_after = (now - timedelta(days=180)).isoformat("T") + "Z"
-
+    if keyword:
         search_response = youtube.search().list(
             q=keyword,
-            part="snippet",
             type="channel",
+            part="snippet",
             maxResults=20,
-            order="date",
-            publishedAfter=published_after
+            publishedAfter=(datetime.utcnow() - timedelta(days=180)).isoformat("T") + "Z"
         ).execute()
 
-        channel_ids = [item["snippet"]["channelId"] for item in search_response.get("items", [])]
+        for item in search_response.get("items", []):
+            channel_id = item["snippet"]["channelId"]
+            if channel_id in seen_channel_ids:
+                continue
+            seen_channel_ids.add(channel_id)
 
-        if channel_ids:
-            channels_response = youtube.channels().list(
-                part="snippet,statistics",
-                id=",".join(channel_ids)
+            channel_title = item["snippet"]["title"]
+            published_at = item["snippet"]["publishedAt"]
+
+            stats_response = youtube.channels().list(
+                part="statistics,snippet",
+                id=channel_id
             ).execute()
 
-            seen_channel_ids = set()
-            for item in channels_response.get("items", []):
-                channel_id = item["id"]
-                if channel_id in seen_channel_ids:
-                    continue
-                seen_channel_ids.add(channel_id)
+            if stats_response["items"]:
+                stats = stats_response["items"][0]["statistics"]
+                snippet = stats_response["items"][0]["snippet"]
+                subs = safe_get(stats.get("subscriberCount"))
+                views = safe_get(stats.get("viewCount"))
+                description = snippet.get("description", "")
 
-                snippet = item["snippet"]
-                stats = item["statistics"]
-                published_at = datetime.strptime(snippet.get("publishedAt", ""), "%Y-%m-%dT%H:%M:%SZ")
+                months_since_creation = max((datetime.utcnow() - datetime.strptime(published_at, "%Y-%m-%dT%H:%M:%SZ")).days // 30, 1)
+                estimated_income = (views // 1000) * 1.5 // months_since_creation  # 推定月収
 
-                subs = int(stats.get("subscriberCount", 0))
-                views = int(stats.get("viewCount", 0))
+                if not growth_filter or (subs >= 1000 and views >= 10000):
+                    category = estimate_category(channel_title)
+                    genre = guess_genre(channel_title, description)
 
-                months_since_creation = max((now - published_at).days / 30, 1)
-                views_per_month = views / months_since_creation
-                estimated_income = calculate_estimated_income(views_per_month)
+                    channels.append({
+                        "title": channel_title,
+                        "link": f"https://www.youtube.com/channel/{channel_id}",
+                        "subs": subs,
+                        "views": views,
+                        "estimated_income": int(estimated_income),
+                        "published_at": published_at[:10],
+                        "category": category,
+                        "genre": genre,
+                    })
 
-                if filter_growth:
-                    if (now - published_at).days > 180 or subs < 1000 or views < 10000:
-                        continue
-
-                channels.append({
-                    "title": snippet.get("title", "不明"),
-                    "subs": f"{subs:,}",
-                    "views": f"{views:,}",
-                    "income": f"{estimated_income:,} 円/月",
-                    "created_at": published_at.strftime("%Y/%m/%d")
-                })
-
-    return render_template("index.html", channels=channels, keyword=keyword, filter_growth=filter_growth)
+    return render_template("index.html", channels=channels, keyword=keyword, growth_filter=growth_filter)
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))
