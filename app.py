@@ -5,6 +5,7 @@ import datetime
 import os
 
 app = Flask(__name__)
+
 API_KEY = os.environ.get("YOUTUBE_API_KEY")
 
 @app.route("/")
@@ -17,20 +18,14 @@ def index():
         q=keyword,
         part="snippet",
         type="video",
-        maxResults=30,
+        maxResults=20,
         publishedAfter=(datetime.datetime.utcnow() - datetime.timedelta(days=180)).isoformat("T") + "Z"
     ).execute()
 
     channels = []
-    seen_channels = set()
-
-    for item in search_response.get("items", []):
+    for item in search_response["items"]:
         channel_id = item["snippet"]["channelId"]
         channel_title = item["snippet"]["channelTitle"]
-
-        if channel_id in seen_channels:
-            continue
-        seen_channels.add(channel_id)
 
         ch_data = youtube.channels().list(
             part="snippet,statistics",
@@ -38,24 +33,23 @@ def index():
         ).execute()
 
         if ch_data["items"]:
-            ch = ch_data["items"][0]
-            published_at = parser.parse(ch["snippet"]["publishedAt"])
-            stats = ch["statistics"]
+            published_at = parser.parse(ch_data["items"][0]["snippet"]["publishedAt"])
+            stats = ch_data["items"][0]["statistics"]
             subs = int(stats.get("subscriberCount", 0))
             views = int(stats.get("viewCount", 0))
+            videos = int(stats.get("videoCount", 1))
 
-            if not filter_growth or ((datetime.datetime.utcnow() - published_at.replace(tzinfo=None)).days <= 180 and subs >= 1000 and views >= 10000):
+            if not filter_growth or ((datetime.datetime.utcnow() - published_at).days <= 180 and subs >= 1000 and views >= 10000):
+                months_since_creation = max((datetime.datetime.utcnow() - published_at).days / 30, 1)
+                est_income = round((views / months_since_creation) * 0.1)  # 収益推定式
+
                 channels.append({
                     "title": channel_title,
-                    "url": f"https://www.youtube.com/channel/{channel_id}",
-                    "subscribers": f"{subs:,}",
-                    "views": f"{views:,}",
-                    "category": "推測中",
-                    "created": published_at.strftime("%Y/%m/%d")
+                    "subs": subs,
+                    "views": views,
+                    "created": published_at.date(),
+                    "income": est_income
                 })
 
-    return render_template("index.html", channels=channels)
-
-if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 10000))
-    app.run(host="0.0.0.0", port=port)
+    channels.sort(key=lambda x: x["subs"], reverse=True)
+    return render_template("index.html", channels=channels, keyword=keyword, filter_growth=filter_growth)
