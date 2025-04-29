@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -9,39 +10,34 @@
 
     <form method="GET" action="/">
         <input type="text" name="keyword" value="{{ keyword }}" placeholder="キーワードを入力">
-        <label><input type="checkbox" name="growth" {% if growth_filter %}checked{% endif %}> 急成長チャンネルのみ表示</label>
         <button type="submit">検索</button>
     </form>
 
     {% if channels %}
-        <table border="1" cellpadding="5">
-            <thead>
-                <tr>
-                    <th>チャンネル名（リンク）</th>
-                    <th>登録者数</th>
-                    <th>総再生数</th>
-                    <th>推定月収（円）</th>
-                    <th>カテゴリ</th>
-                    <th>ジャンル</th>
-                    <th>作成日</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for ch in channels %}
-                <tr>
-                    <td><a href="{{ ch.link }}" target="_blank">{{ ch.title }}</a></td>
-                    <td>{{ ch.subs }}</td>
-                    <td>{{ ch.views }}</td>
-                    <td>{{ ch.estimated_income }}</td>
-                    <td>{{ ch.category }}</td>
-                    <td>{{ ch.genre }}</td>
-                    <td>{{ ch.published_at[:10] }}</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    {% else %}
-        <p>検索キーワードを入力して、チャンネルを探してください。</p>
+    <table border="1" cellpadding="5">
+        <thead>
+            <tr>
+                <th>チャンネル名（リンク）</th>
+                <th>登録者数</th>
+                <th>総再生数</th>
+                <th>公式カテゴリ</th>
+                <th>独自ジャンル</th>
+                <th>作成日</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for ch in channels %}
+            <tr>
+                <td><a href="{{ ch.link }}" target="_blank">{{ ch.title }}</a></td>
+                <td>{{ ch.subs }}</td>
+                <td>{{ ch.views }}</td>
+                <td>{{ ch.category }}</td>
+                <td>{{ ch.genre }}</td>
+                <td>{{ ch.published_at }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
     {% endif %}
 </body>
 </html>
