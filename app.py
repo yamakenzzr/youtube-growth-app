@@ -6,27 +6,7 @@ from datetime import datetime
 
 app = Flask(__name__)
 app.secret_key = os.urandom(24)
-
 API_KEY = os.environ.get("YOUTUBE_API_KEY")
-
-CATEGORY_MAPPING = {
-    "1": "映画とアニメ",
-    "2": "自動車と乗り物",
-    "10": "音楽",
-    "15": "ペットと動物",
-    "17": "スポーツ",
-    "18": "短編映画",
-    "19": "旅行とイベント",
-    "20": "ゲーム",
-    "21": "ブログ",
-    "22": "コメディ",
-    "23": "エンターテイメント",
-    "24": "ニュースと政治",
-    "25": "ハウツーとスタイル",
-    "26": "教育",
-    "27": "科学と技術",
-    "28": "非営利・社会活動"
-}
 
 GENRES = [
     "教育・解説", "ビジネス・副業", "エンタメ・バラエティ", "Vlog・ライフスタイル",
@@ -39,23 +19,23 @@ GENRES = [
 def guess_genre(text):
     text = text.lower()
     genre_keywords = {
-        "教育・解説": ["勉強", "学習", "解説", "授業", "資格", "知識", "講座", "受験"],
-        "ビジネス・副業": ["副業", "投資", "起業", "経営", "資産運用", "経済", "フリーランス"],
-        "エンタメ・バラエティ": ["ドッキリ", "ネタ", "面白い", "検証", "チャレンジ", "バラエティ"],
-        "Vlog・ライフスタイル": ["日常", "ルーティン", "暮らし", "旅行", "生活", "カフェ", "観光", "主婦"],
-        "ゲーム・実況": ["ゲーム実況", "プレイ動画", "攻略", "配信", "対戦"],
-        "音楽・歌ってみた": ["カバー", "歌ってみた", "演奏", "楽器", "作曲", "ライブ"],
-        "料理・食べ歩き": ["料理", "レシピ", "クッキング", "食べ歩き", "グルメ", "ラーメン"],
-        "美容・ファッション": ["コスメ", "メイク", "スキンケア", "ファッション", "美容", "髪型"],
-        "スポーツ・トレーニング": ["筋トレ", "フィットネス", "ダイエット", "サッカー", "野球", "バスケ"],
-        "科学・テクノロジー": ["ai", "宇宙", "科学", "ガジェット", "it", "レビュー"],
-        "ペット・動物": ["犬", "猫", "ハムスター", "ペット", "動物", "癒し"],
-        "心霊・都市伝説・オカルト": ["心霊", "怪談", "都市伝説", "怖い話", "超常現象"],
-        "まとめ・ゆっくり解説": ["ゆっくり解説", "2ch", "5ch", "まとめ"],
-        "マンガ・アニメ考察": ["考察", "ネタバレ", "アニメ", "漫画", "伏線"],
-        "車・バイク": ["ドライブ", "車中泊", "カーライフ", "バイク", "ツーリング"],
-        "子育て・ファミリー": ["子育て", "育児", "赤ちゃん", "ママ", "パパ", "家族"],
-        "レトロ・懐かし系": ["昭和", "レトロ", "懐かしい", "昔話", "レトロゲーム"]
+        "教育・解説": ["勉強", "解説", "授業", "資格"],
+        "ビジネス・副業": ["副業", "投資", "起業"],
+        "エンタメ・バラエティ": ["ドッキリ", "バラエティ"],
+        "Vlog・ライフスタイル": ["日常", "旅行", "暮らし"],
+        "ゲーム・実況": ["ゲーム実況", "攻略"],
+        "音楽・歌ってみた": ["歌ってみた", "演奏"],
+        "料理・食べ歩き": ["料理", "食べ歩き"],
+        "美容・ファッション": ["メイク", "コスメ"],
+        "スポーツ・トレーニング": ["筋トレ", "サッカー"],
+        "科学・テクノロジー": ["宇宙", "AI"],
+        "ペット・動物": ["犬", "猫", "ペット"],
+        "心霊・都市伝説・オカルト": ["心霊", "都市伝説"],
+        "まとめ・ゆっくり解説": ["ゆっくり解説", "まとめ"],
+        "マンガ・アニメ考察": ["考察", "アニメ"],
+        "車・バイク": ["車", "バイク"],
+        "子育て・ファミリー": ["育児", "子育て"],
+        "レトロ・懐かし系": ["レトロ", "昭和"]
     }
     for genre, keywords in genre_keywords.items():
         if any(kw in text for kw in keywords):
@@ -100,52 +80,42 @@ def index():
             maxResults=30
         ).execute()
 
-        seen_channel_ids = set()
+        seen = set()
 
         for item in search_response.get("items", []):
-            channel_id = item["snippet"]["channelId"]
-            if channel_id in seen_channel_ids:
+            cid = item["snippet"]["channelId"]
+            if cid in seen:
                 continue
-            seen_channel_ids.add(channel_id)
+            seen.add(cid)
 
-            channel_response = youtube.channels().list(
-                part="snippet,statistics",
-                id=channel_id
-            ).execute()
-
-            if channel_response["items"]:
-                channel = channel_response["items"][0]
-                snippet = channel["snippet"]
-                statistics = channel["statistics"]
-
-                title = snippet.get("title", "")
-                description = snippet.get("description", "")
-                published_at = snippet.get("publishedAt", "")[:10]
-                pub_date = datetime.strptime(published_at, "%Y-%m-%d")
+            channel = youtube.channels().list(part="snippet,statistics", id=cid).execute()
+            if channel["items"]:
+                ch = channel["items"][0]
+                title = ch["snippet"].get("title", "")
+                desc = ch["snippet"].get("description", "")
+                pub = ch["snippet"].get("publishedAt", "")[:10]
+                pub_date = datetime.strptime(pub, "%Y-%m-%d")
                 now = datetime.utcnow()
-                months_diff = (now.year - pub_date.year) * 12 + now.month - pub_date.month
+                months = (now.year - pub_date.year) * 12 + now.month - pub_date.month
 
-                if growth_filter == "3" and months_diff > 3:
+                if growth_filter == "3" and months > 3:
                     continue
-                if growth_filter == "6" and months_diff > 6:
+                if growth_filter == "6" and months > 6:
                     continue
 
-                subscriber_count = statistics.get("subscriberCount", 0)
-                view_count = statistics.get("viewCount", 0)
-                category_id = snippet.get("categoryId", "0")
-                category = CATEGORY_MAPPING.get(category_id, "不明")
+                subs = ch["statistics"].get("subscriberCount", 0)
+                views = ch["statistics"].get("viewCount", 0)
+                genre = guess_genre(title + desc)
 
-                genre = guess_genre(title + " " + description)
                 if genre_filter and genre_filter != genre:
                     continue
 
                 channels.append({
                     "title": title,
-                    "link": f"https://www.youtube.com/channel/{channel_id}",
-                    "subs": format_subscribers(subscriber_count),
-                    "views": format_views(view_count),
-                    "published_at": published_at,
-                    "category": category,
+                    "link": f"https://www.youtube.com/channel/{cid}",
+                    "subs": format_subscribers(subs),
+                    "views": format_views(views),
+                    "published_at": pub,
                     "genre": genre
                 })
 
