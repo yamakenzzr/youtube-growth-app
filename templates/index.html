@@ -10,8 +10,20 @@
 
     <form method="GET" action="/">
         <input type="text" name="keyword" value="{{ keyword }}" placeholder="キーワードを入力">
+        <label><input type="checkbox" name="growth_filter" value="3" {% if growth_filter == "3" %}checked{% endif %}> 3か月以内</label>
+        <label><input type="checkbox" name="growth_filter" value="6" {% if growth_filter == "6" %}checked{% endif %}> 6か月以内</label>
+        <select name="genre_filter">
+            <option value="">ジャンル指定なし</option>
+            {% for genre in genres %}
+            <option value="{{ genre }}" {% if genre == genre_filter %}selected{% endif %}>{{ genre }}</option>
+            {% endfor %}
+        </select>
         <button type="submit">検索</button>
     </form>
+
+    <div>
+        🔢 検索回数：{{ search_count }} / 50
+    </div>
 
     {% if channels %}
     <table border="1" cellpadding="5">
