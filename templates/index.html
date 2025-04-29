@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>YouTube急成長チャンネル検索ツール</title>
+</head>
+<body>
+    <h1>YouTube急成長チャンネル検索ツール</h1>
+
+    {% if message %}
+        <p style="color:red;">{{ message }}</p>
+    {% endif %}
+
+    <form method="post">
+        🔍 キーワード検索：<input type="text" name="keyword" required><br><br>
+
+        🎯 成長フィルター：<br>
+        <input type="checkbox" name="use_6m_filter" value="on"> 登録6か月以内<br>
+        <input type="checkbox" name="use_3m_filter" value="on"> 登録3か月以内<br><br>
+
+        🎯 今日の検索回数：{{ search_count }}回 / {{ max_count }}回<br><br>
+
+        <button type="submit" {% if search_count >= max_count %}disabled{% endif %}>検索する</button>
+    </form>
+
+    <hr>
+
+    <h2>検索結果</h2>
+    <table border="1">
+        <tr>
+            <th>チャンネル名</th>
+            <th>登録者数</th>
+            <th>総再生数</th>
+            <th>チャンネル作成日</th>
+            <th>リンク</th>
+        </tr>
+        {% for ch in channels %}
+        <tr>
+            <td>{{ ch.title }}</td>
+            <td>{{ ch.subscribers }}</td>
+            <td>{{ ch.views }}</td>
+            <td>{{ ch.created }}</td>
+            <td><a href="{{ ch.url }}" target="_blank">チャンネルへ</a></td>
+        </tr>
+        {% endfor %}
+    </table>
+
+</body>
+</html>
