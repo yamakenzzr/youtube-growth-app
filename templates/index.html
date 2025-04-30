@@ -38,6 +38,10 @@
         <option value="{{ genre }}" {% if genre == genre_filter %}selected{% endif %}>{{ genre }}</option>
         {% endfor %}
     </select>
+    <select name="sort_by">
+      <option value="views" {% if request.args.get('sort_by') == 'views' %}selected{% endif %}>再生数順</option>
+      <option value="subs" {% if request.args.get('sort_by') == 'subs' %}selected{% endif %}>登録者数順</option>
+    </select>
     <button type="submit" {% if blocked %}disabled{% endif %}>検索</button>
 </form>
 
@@ -58,6 +62,8 @@
 {% else %}
 🧹 検索結果：0件
 {% endif %}
+<br>
+🧭 並び順：{{ '登録者数順' if request.args.get('sort_by') == 'subs' else '再生数順' }}
 </div>
 {% endif %}
 
