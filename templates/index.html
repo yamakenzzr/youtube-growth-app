@@ -64,7 +64,14 @@
 {% if channels %}
 <table>
 <thead>
-<tr><th>チャンネル名</th><th>登録者数</th><th>総再生数</th><th>独自ジャンル</th><th>作成日</th></tr>
+<tr>
+  <th>チャンネル名</th>
+  <th>登録者数</th>
+  <th>総再生数</th>
+  <th>投稿数</th>
+  <th>独自ジャンル</th>
+  <th>作成日</th>
+</tr>
 </thead>
 <tbody>
 {% for ch in channels %}
@@ -72,6 +79,7 @@
 <td><a href="{{ ch.link }}" target="_blank">{{ ch.title }}</a></td>
 <td>{{ ch.subs }}</td>
 <td>{{ ch.views }}</td>
+<td>{{ ch.videos }}</td>
 <td>{{ ch.genre }}</td>
 <td>{{ ch.published_at }}</td>
 </tr>

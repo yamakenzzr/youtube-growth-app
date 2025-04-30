@@ -32,6 +32,13 @@ def format_views(views):
     else:
         return f"{views}回再生"
 
+def format_videos(count):
+    count = int(count)
+    if count >= 10_000:
+        return f"{count / 10000:.1f}万本"
+    else:
+        return f"{count}本"
+
 @app.route("/", methods=["GET"])
 def index():
     if "search_count" not in session:
@@ -84,6 +91,7 @@ def index():
 
                     subs = ch["statistics"].get("subscriberCount", 0)
                     views = ch["statistics"].get("viewCount", 0)
+                    videos = ch["statistics"].get("videoCount", 0)
                     genre = guess_genre(title + desc)
 
                     channels.append({
@@ -91,6 +99,7 @@ def index():
                         "link": f"https://www.youtube.com/channel/{cid}",
                         "subs": format_subscribers(subs),
                         "views": format_views(views),
+                        "videos": format_videos(videos),
                         "published_at": pub_dt.strftime("%Y-%m-%d"),
                         "genre": genre
                     })
