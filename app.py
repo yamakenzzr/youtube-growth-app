@@ -39,6 +39,13 @@ def format_videos(count):
     else:
         return f"{count}本"
 
+def format_ratio(views, subs):
+    try:
+        ratio = int(views) / int(subs)
+        return f"{ratio:.2f}回/人"
+    except:
+        return "N/A"
+
 @app.route("/", methods=["GET"])
 def index():
     if "search_count" not in session:
@@ -89,9 +96,11 @@ def index():
                     elif growth_filter == "6" and days_since_creation > 180:
                         continue
 
-                    subs = ch["statistics"].get("subscriberCount", 0)
-                    views = ch["statistics"].get("viewCount", 0)
-                    videos = ch["statistics"].get("videoCount", 0)
+                    stats = ch["statistics"]
+                    subs = stats.get("subscriberCount", 0)
+                    views = stats.get("viewCount", 0)
+                    videos = stats.get("videoCount", 0)
+                    ratio = format_ratio(views, subs)
                     genre = guess_genre(title + desc)
 
                     channels.append({
@@ -100,6 +109,7 @@ def index():
                         "subs": format_subscribers(subs),
                         "views": format_views(views),
                         "videos": format_videos(videos),
+                        "ratio": ratio,
                         "published_at": pub_dt.strftime("%Y-%m-%d"),
                         "genre": genre
                     })
