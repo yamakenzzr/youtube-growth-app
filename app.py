@@ -54,6 +54,7 @@ def index():
     keyword = request.args.get("keyword", "")
     growth_filter = request.args.get("growth_filter", "")
     genre_filter = request.args.get("genre_filter", "")
+    sort_by = request.args.get("sort_by", "views")
     error = None
     channels = []
     blocked = False
@@ -111,8 +112,15 @@ def index():
                         "videos": format_videos(videos),
                         "ratio": ratio,
                         "published_at": pub_dt.strftime("%Y-%m-%d"),
-                        "genre": genre
+                        "genre": genre,
+                        "raw_views": int(views),
+                        "raw_subs": int(subs)
                     })
+
+            if sort_by == "subs":
+                channels.sort(key=lambda ch: ch["raw_subs"], reverse=True)
+            else:
+                channels.sort(key=lambda ch: ch["raw_views"], reverse=True)
 
             session["search_count"] += 1
         else:
