@@ -41,8 +41,8 @@ def format_videos(count):
 
 def format_ratio(views, subs):
     try:
-        ratio = int(views) / int(subs)
-        return f"{ratio:.2f}回/人"
+        ratio = int(views) // int(subs)
+        return f"{ratio}回/人"
     except:
         return "N/A"
 
