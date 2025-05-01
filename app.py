@@ -2,7 +2,6 @@
 import os
 from flask import Flask, request, render_template, session
 from datetime import datetime
-from dateutil.parser import parse
 
 app = Flask(__name__)
 app.secret_key = os.urandom(24)
@@ -32,13 +31,11 @@ def index():
     genre = request.args.get("genre", "")
     sort = request.args.get("sort", "views")
 
-    # 検索カウンター
     if "search_count" not in session:
         session["search_count"] = 0
     session["search_count"] += 1
 
-    # 仮のサンプルチャンネル（検索に応じて絞り込み）
-    raw_data = [
+    data = [
         {
             "id": "UC111", "title": "占いちゃんねる", "subscriberCount": "1万",
             "viewCount": "300万", "videoCount": "100", "publishedAt": "2023-02-01"
@@ -50,7 +47,7 @@ def index():
     ]
 
     filtered = []
-    for ch in raw_data:
+    for ch in data:
         if keyword in ch["title"] and (not genre or guess_genre(ch["title"]) == genre):
             ch["playPerSub"] = "300"
             ch["genre"] = guess_genre(ch["title"])
@@ -63,14 +60,12 @@ def index():
         "ratio": "1人あたり再生数順"
     }.get(sort, "再生数順")
 
-    return render_template("index.html",
-        genres=GENRES,
-        keyword=keyword,
-        genre=genre,
-        sort=sort,
-        sort_name=sort_name,
-        channels=filtered
-    )
+    return render_template("index.html", genres=GENRES, keyword=keyword, genre=genre,
+                           sort=sort, sort_name=sort_name, channels=filtered)
+
+@app.route("/welcome")
+def welcome():
+    return render_template("welcome.html")
 
 @app.route("/terms")
 def terms():
