@@ -16,37 +16,45 @@ GENRES = [
     "恋愛・男女心理", "オカルト・ミステリー", "未分類"
 ]
 
+def guess_genre(text):
+    for genre, keywords in {
+        "占い・スピリチュアル": ["占い", "霊視", "オーラ", "運勢"],
+        "ゲーム・実況": ["ゲーム", "実況", "攻略"],
+        "本・要約・読書系": ["読書", "書評", "要約"],
+    }.items():
+        if any(k in text for k in keywords):
+            return genre
+    return "未分類"
+
 @app.route("/")
 def index():
     keyword = request.args.get("keyword", "")
     genre = request.args.get("genre", "")
     sort = request.args.get("sort", "views")
 
-    # 仮データで表示テスト（API実行なし）
-    dummy_channels = []
-    if keyword or genre:
-        dummy_channels = [
-            {
-                "id": "UCXXXXX1",
-                "title": "サンプルチャンネルA",
-                "subscriberCount": "3.2万",
-                "viewCount": "2297.6万",
-                "videoCount": "2140",
-                "playPerSub": "722",
-                "genre": genre if genre else "未分類",
-                "publishedAt": "2020-03-19"
-            },
-            {
-                "id": "UCXXXXX2",
-                "title": "サンプルチャンネルB",
-                "subscriberCount": "4.1万",
-                "viewCount": "1629.1万",
-                "videoCount": "1489",
-                "playPerSub": "393",
-                "genre": genre if genre else "未分類",
-                "publishedAt": "2019-07-03"
-            }
-        ]
+    # 検索カウンター
+    if "search_count" not in session:
+        session["search_count"] = 0
+    session["search_count"] += 1
+
+    # 仮のサンプルチャンネル（検索に応じて絞り込み）
+    raw_data = [
+        {
+            "id": "UC111", "title": "占いちゃんねる", "subscriberCount": "1万",
+            "viewCount": "300万", "videoCount": "100", "publishedAt": "2023-02-01"
+        },
+        {
+            "id": "UC222", "title": "ゲーム配信者Z", "subscriberCount": "5万",
+            "viewCount": "1000万", "videoCount": "500", "publishedAt": "2022-05-01"
+        }
+    ]
+
+    filtered = []
+    for ch in raw_data:
+        if keyword in ch["title"] and (not genre or guess_genre(ch["title"]) == genre):
+            ch["playPerSub"] = "300"
+            ch["genre"] = guess_genre(ch["title"])
+            filtered.append(ch)
 
     sort_name = {
         "views": "再生数順",
@@ -61,7 +69,7 @@ def index():
         genre=genre,
         sort=sort,
         sort_name=sort_name,
-        channels=dummy_channels
+        channels=filtered
     )
 
 @app.route("/terms")

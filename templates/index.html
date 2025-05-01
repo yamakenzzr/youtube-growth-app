@@ -1,81 +1,14 @@
 
 <!DOCTYPE html>
 <html lang="ja">
-<head>
-  <meta charset="UTF-8">
-  <title>YouTube急成長チャンネル検索</title>
-  <style>
-    body { font-family: Arial, sans-serif; padding: 20px; }
-    h1 { color: #111; }
-    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-    th, td { padding: 8px; border: 1px solid #ccc; text-align: center; }
-    select, input[type="text"] { padding: 5px; margin-right: 10px; }
-    .footer { margin-top: 40px; font-size: 0.9em; color: #555; }
-  </style>
-</head>
+<head><meta charset="UTF-8"><title>YouTube分析ツール</title></head>
 <body>
-  <h1>YouTube急成長チャンネル検索</h1>
-
-  <form method="get" action="/">
-    <label>🔍 キーワード検索：</label>
-    <input type="text" name="keyword">
-    <label><input type="checkbox" name="new3m">3か月以内</label>
-    <label><input type="checkbox" name="new6m">6か月以内</label>
-    <select name="genre">
-      <option value="">ジャンル指定なし</option>
-      {% for g in genres %}
-        <option value="{{ g }}">{{ g }}</option>
-      {% endfor %}
-    </select>
-    <select name="sort">
-      <option value="views">再生数順</option>
-      <option value="subs">登録者順</option>
-      <option value="videos">投稿数順</option>
-      <option value="ratio">1人あたり再生数順</option>
-    </select>
-    <button type="submit">検索</button>
-  </form>
-
-  <p>🔄 検索回数：{{ session.get('search_count', 0) }} / 50</p>
-  {% if keyword %}
-    <p style="color: green;">🔍 検索結果：{{ channels|length }}件</p>
-    <p>並び順：{{ sort_name }}</p>
-  {% endif %}
-
-  {% if channels %}
-  <table>
-    <thead>
-      <tr>
-        <th>チャンネル名</th>
-        <th>登録者数</th>
-        <th>総再生数</th>
-        <th>投稿数</th>
-        <th>1人あたり再生数</th>
-        <th>独自ジャンル</th>
-        <th>作成日</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for ch in channels %}
-      <tr>
-        <td><a href="https://www.youtube.com/channel/{{ ch.id }}" target="_blank">{{ ch.title }}</a></td>
-        <td>{{ ch.subscriberCount|default("?") }}人</td>
-        <td>{{ ch.viewCount|default("?") }}回再生</td>
-        <td>{{ ch.videoCount|default("?") }}本</td>
-        <td>{{ ch.playPerSub|default("?") }}回/人</td>
-        <td>{{ ch.genre }}</td>
-        <td>{{ ch.publishedAt[:10] }}</td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
-  {% elif keyword %}
-    <p style="color: red;">一致するチャンネルが見つかりませんでした。</p>
-  {% endif %}
-
-  <div class="footer">
-    ※本ツールはYouTubeおよびGoogleとは一切関係のない非公式の分析支援ツールです。<br>
-    データはYouTube APIを使用して取得されており、利用者は <a href="/terms" target="_blank">利用規約</a> に同意した上でご利用ください。
-  </div>
+<h1>ようこそ</h1>
+<p>このツールはYouTube急成長チャンネルを分析する非公式支援ツールです。</p>
+<hr>
+<div style="font-size: 0.9em; color: #666;">
+※本ツールはYouTubeおよびGoogleとは一切関係のない非公式の分析支援ツールです。<br>
+データはYouTube APIを使用して取得されており、利用者は <a href="/terms" target="_blank">利用規約</a> に同意した上でご利用ください。
+</div>
 </body>
 </html>
