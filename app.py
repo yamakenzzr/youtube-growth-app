@@ -1,4 +1,5 @@
 import os
+from datetime import datetime, timedelta
 from flask import Flask, render_template, request, session
 from googleapiclient.discovery import build
 
@@ -33,17 +34,30 @@ def index():
     keyword = request.args.get("keyword", "")
     genre_filter = request.args.get("genre", "")
     sort = request.args.get("sort", "views")
+    period = request.args.get("period", "")
 
     if "search_count" not in session:
         session["search_count"] = 0
     session["search_count"] += 1
 
+    published_after = None
+    if period == "3m":
+        published_after = (datetime.utcnow() - timedelta(days=90)).isoformat("T") + "Z"
+    elif period == "6m":
+        published_after = (datetime.utcnow() - timedelta(days=180)).isoformat("T") + "Z"
+
     results = []
     if keyword:
-        search_res = youtube.search().list(
-            q=keyword, part="snippet", type="channel", maxResults=10
-        ).execute()
+        search_args = {
+            "q": keyword,
+            "part": "snippet",
+            "type": "channel",
+            "maxResults": 10
+        }
+        if published_after:
+            search_args["publishedAfter"] = published_after
 
+        search_res = youtube.search().list(**search_args).execute()
         channel_ids = [item["snippet"]["channelId"] for item in search_res["items"]]
         if channel_ids:
             details = youtube.channels().list(
@@ -81,7 +95,7 @@ def index():
     }.get(sort, "再生数順")
 
     return render_template("index.html", genres=GENRES, keyword=keyword, genre=genre_filter,
-                           sort=sort, sort_name=sort_name, channels=results)
+                           sort=sort, sort_name=sort_name, channels=results, period=period)
 
 @app.route("/terms")
 def terms():
