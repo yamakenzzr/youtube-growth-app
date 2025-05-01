@@ -6,24 +6,24 @@
   <title>YouTube急成長チャンネル検索</title>
   <style>
     body { font-family: Arial, sans-serif; padding: 20px; }
+    form { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
     table { width: 100%; border-collapse: collapse; margin-top: 20px; }
     th, td { padding: 8px; border: 1px solid #ccc; text-align: center; }
     img.icon { border-radius: 50%; width: 48px; height: 48px; }
-    .filters { margin-top: 10px; margin-bottom: 20px; }
-    .filters label { margin-right: 10px; font-weight: bold; }
+    .filter-block { display: flex; flex-direction: column; }
   </style>
 </head>
 <body>
   <h1>YouTube急成長チャンネル検索</h1>
 
   <form method="get" action="/">
-    <div class="filters">
+    <div class="filter-block">
       <label>🔍 キーワード検索：</label>
       <input type="text" name="keyword" value="{{ keyword }}">
     </div>
 
-    <div class="filters">
-      <label>独自ジャンル：</label><br>
+    <div class="filter-block">
+      <label>独自ジャンル：</label>
       <select name="genre">
         <option value="">ジャンル指定なし</option>
         {% for g in genres %}
@@ -32,7 +32,7 @@
       </select>
     </div>
 
-    <div class="filters">
+    <div class="filter-block">
       <label>並び順：</label>
       <select name="sort">
         <option value="views" {% if sort == 'views' %}selected{% endif %}>再生数順</option>
@@ -42,11 +42,13 @@
       </select>
     </div>
 
-    <div class="filters">
-      <label>📅 作成日フィルター：</label><br>
-      <input type="radio" name="period" value="" {% if not period %}checked{% endif %}> 指定なし
-      <input type="radio" name="period" value="3m" {% if period == '3m' %}checked{% endif %}> 過去3か月以内
-      <input type="radio" name="period" value="6m" {% if period == '6m' %}checked{% endif %}> 過去6か月以内
+    <div class="filter-block">
+      <label>📅 作成日フィルター：</label>
+      <div>
+        <input type="radio" name="period" value="" {% if not period %}checked{% endif %}> 指定なし
+        <input type="radio" name="period" value="3m" {% if period == '3m' %}checked{% endif %}> 過去3か月以内
+        <input type="radio" name="period" value="6m" {% if period == '6m' %}checked{% endif %}> 過去6か月以内
+      </div>
     </div>
 
     <button type="submit">検索</button>
