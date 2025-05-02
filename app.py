@@ -3,6 +3,14 @@ from datetime import datetime, timedelta
 from flask import Flask, render_template, request, session
 from googleapiclient.discovery import build
 
+
+def safe_parse_date(date_str):
+    try:
+        clean_str = date_str.split(".")[0] + "Z" if "." in date_str else date_str
+        return datetime.strptime(clean_str, "%Y-%m-%dT%H:%M:%SZ")
+    except Exception:
+        return None
+
 app = Flask(__name__)
 app.secret_key = os.urandom(24)
 app.static_folder = 'static'
@@ -83,7 +91,7 @@ def index():
                 continue
 
             pub_date_str = ch["snippet"].get("publishedAt", "")
-            pub_date = datetime.strptime(pub_date_str, "%Y-%m-%dT%H:%M:%SZ") if pub_date_str else None
+            pub_date = safe_parse_date(pub_date_str)
             if period == "3m" and pub_date and pub_date < datetime.utcnow() - timedelta(days=90):
                 continue
             if period == "6m" and pub_date and pub_date < datetime.utcnow() - timedelta(days=180):
