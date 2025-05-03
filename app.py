@@ -1,6 +1,6 @@
 import os
 from datetime import datetime
-from dateutil import parser, timedelta
+from dateutil.parser import parse, timedelta
 from flask import Flask, render_template, request, session
 from googleapiclient.discovery import build
 
